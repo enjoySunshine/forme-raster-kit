@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>灯箱预览 · 第 17 张</title>
+<style>
+  body { font-family: sans-serif; margin: 2em; background: #1b1b1b; color: #eee; }
+  h1 { font-size: 1.4em; }
+  .ms { font-size: 1.2em; color: #8f8; }
+  figure { margin: 1.5em 0; }
+  figcaption { margin-bottom: .5em; color: #bbb; }
+  img { background: #333; border: 1px solid #444; image-rendering: auto; }
+  table { border-collapse: collapse; margin-top: 1em; }
+  td, th { border: 1px solid #444; padding: .3em .8em; }
+</style>
+</head>
+<body>
+<h1>灯箱预览 · 线性光 720×480</h1>
+<p class="ms">本次线性出图耗时：354 毫秒</p>
+<figure>
+  <figcaption>线性光预览 720×480（preview-720x480.png，与页上毫秒数同一次出图）</figcaption>
+  <img src="preview-720x480.png" width="720" height="480" alt="线性预览 720x480">
+</figure>
+<figure>
+  <figcaption>联络图 · 同一套线性缩小 360×240（contact-360x240.png，本次 239 毫秒）</figcaption>
+  <img src="contact-360x240.png" width="360" height="240" alt="联络图 360x240">
+</figure>
+<h2>目录图（不走线性，对印刷档案）</h2>
+<figure>
+  <figcaption>目录图 720×480（catalog-720x480.png，本次 74 毫秒）</figcaption>
+  <img src="catalog-720x480.png" width="720" height="480" alt="目录图 720x480">
+</figure>
+<figure>
+  <figcaption>目录图 360×240（catalog-360x240.png，本次 46 毫秒）</figcaption>
+  <img src="catalog-360x240.png" width="360" height="240" alt="目录图 360x240">
+</figure>
+<table>
+  <tr><th>项目</th><th>尺寸</th><th>线性光</th><th>本次耗时</th></tr>
+  <tr><td>灯箱预览</td><td>720×480</td><td>是</td><td>354 毫秒</td></tr>
+  <tr><td>联络图</td><td>360×240</td><td>是</td><td>239 毫秒</td></tr>
+  <tr><td>目录图</td><td>720×480</td><td>否</td><td>74 毫秒</td></tr>
+  <tr><td>目录图</td><td>360×240</td><td>否</td><td>46 毫秒</td></tr>
+</table>
+<p>线性 720×480 出图进程峰值内存：68 MB。</p>
+</body>
+</html>

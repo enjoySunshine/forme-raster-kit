@@ -955,9 +955,33 @@ vips_thumbnail_build(VipsObject *object)
 		in = t[3];
 	}
 
-	if (vips_resize(in, &t[4], 1.0 / hshrink, "vscale", 1.0 / vshrink, NULL))
-		return -1;
-	in = t[4];
+	if (thumbnail->linear &&
+		hshrink > 1.0 &&
+		vshrink > 1.0) {
+		/* Linear mode shrinks in a float linear space, so wide images
+		 * need very large strip buffers if the vertical reduce runs
+		 * first. Reduce horizontally instead before vertically: the
+		 * vertical stages then run on a narrow image and memory use
+		 * drops dramatically.
+		 *
+		 * This is the same pair of reductions vips_resize() would run
+		 * (same kernels, same int/residual split), just with the axes
+		 * swapped, so the result only differs by float rounding noise.
+		 */
+		g_info("linear mode: reduceh before reducev");
+		if (vips_reduceh(in, &t[20], hshrink,
+				"gap", 2.0, NULL) ||
+			vips_reducev(t[20], &t[21], vshrink,
+				"gap", 2.0, NULL))
+			return -1;
+		in = t[21];
+	}
+	else {
+		if (vips_resize(in, &t[4], 1.0 / hshrink,
+				"vscale", 1.0 / vshrink, NULL))
+			return -1;
+		in = t[4];
+	}
 
 	/* Also resize the gainmap, if any.
 	 */
