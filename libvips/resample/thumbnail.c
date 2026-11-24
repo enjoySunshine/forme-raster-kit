@@ -549,8 +549,23 @@ vips_thumbnail_find_jpegshrink(VipsThumbnail *thumbnail, int width, int height)
 	double shrink =
 		vips_thumbnail_calculate_common_shrink(thumbnail, width, height);
 
-	if (thumbnail->linear)
-		return 1;
+	/* Linear mode can only use a small shrink-on-load factor. Shrink-on-
+	 * load is a block shrink in the sRGB domain, so it nudges hard edges
+	 * by a little once we linearise. A factor of two keeps that within a
+	 * code value on typical scans, and still quarters the float work,
+	 * which is what makes linear mode expensive.
+	 *
+	 * Only take it when there's plenty of shrink left. On a small image
+	 * the pre-shrink is a large part of the total reduction, and the
+	 * sRGB-domain block shrink can then shift fine detail by a lot more.
+	 * Leave at least a factor of four for the final resize step.
+	 */
+	if (thumbnail->linear) {
+		if (shrink >= 8)
+			return 2;
+		else
+			return 1;
+	}
 
 	/* Shrink-on-load is a simple block shrink and will add quite a bit of
 	 * extra sharpness to the image. We want to block shrink to a
@@ -955,9 +970,43 @@ vips_thumbnail_build(VipsObject *object)
 		in = t[3];
 	}
 
-	if (vips_resize(in, &t[4], 1.0 / hshrink, "vscale", 1.0 / vshrink, NULL))
-		return -1;
-	in = t[4];
+	/* In linear mode we're working on float pixels, which are four times
+	 * bigger than the sRGB data we started with. Resize normally does the
+	 * vertical pass first, so each intermediate is still full width, and
+	 * the vertical pass needs a large window of full-width input lines.
+	 * For a big scan that's hundreds of megabytes.
+	 *
+	 * Doing the horizontal pass first lets the vertical pass work on
+	 * reduced-width lines instead, which cuts peak memory by an order of
+	 * magnitude. The result is the same: both passes are separable.
+	 */
+	if (thumbnail->linear &&
+		hshrink > 1.0 &&
+		vshrink > 1.0 &&
+		!vips_image_hasalpha(in)) {
+		VipsImage *t1;
+
+		g_info("linear shrinkh by %g before shrinkv by %g",
+			hshrink, vshrink);
+		if (vips_reduceh(in, &t1, hshrink,
+				"gap", 2.0,
+				NULL))
+			return -1;
+		in = t1;
+
+		if (vips_reducev(in, &t[4], vshrink,
+				"gap", 2.0,
+				NULL))
+			return -1;
+		in = t[4];
+	}
+	else {
+		if (vips_resize(in, &t[4], 1.0 / hshrink,
+				"vscale", 1.0 / vshrink,
+				NULL))
+			return -1;
+		in = t[4];
+	}
 
 	/* Also resize the gainmap, if any.
 	 */
@@ -1600,9 +1649,11 @@ vips_thumbnail_file_init(VipsThumbnailFile *file)
  * these tags will not be interpreted.
  *
  * Shrinking is normally done in sRGB colourspace. Set @linear to shrink in
- * linear light colourspace instead. This can give better results, but can
- * also be far slower, since tricks like JPEG shrink-on-load cannot be used in
- * linear space.
+ * linear light colourspace instead. This can give better results, but it is
+ * more memory hungry and can be slower, since resampling in linear space
+ * cannot use the large JPEG shrink-on-load factors. Linear mode does the
+ * horizontal pass before the vertical one, which keeps peak memory down on
+ * large images.
  *
  * If you set @output_profile to the filename of an ICC profile, the image
  * will be transformed to the target colourspace before writing to the

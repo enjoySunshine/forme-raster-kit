@@ -259,6 +259,30 @@ class TestResample:
             assert thumb.width < thumb.height
             assert thumb.height == 100
 
+    def test_thumbnail_linear(self):
+        # linear shrink must match a plain linear-light resize, so no jump
+        # in colour at hard edges from an sRGB shrink-on-load
+        src = pyvips.Image.new_from_file(JPEG_FILE,
+                                          access="sequential").copy_memory()
+        lin = src.colourspace("scrgb")
+
+        # force a square box so both axes shrink by the same amount and
+        # the manual reference is exact
+        im = pyvips.Image.thumbnail(JPEG_FILE, 100, height=100,
+                                    size="force", linear=True).copy_memory()
+        hshrink = src.width / im.width
+        vshrink = src.height / im.height
+        ref = lin.reduceh(hshrink, gap=2.0).reducev(vshrink, gap=2.0)
+        ref = ref.colourspace("srgb").copy_memory()
+
+        assert im.bands == 3
+        assert (im - ref).abs().max() <= 1
+
+        # linear and ordinary shrinking should not give the same image
+        plain = pyvips.Image.thumbnail(JPEG_FILE, 100, height=100,
+                                       size="force").copy_memory()
+        assert (im - plain).abs().max() > 0
+
     def test_thumbnail_icc(self):
         im = pyvips.Image.thumbnail(JPEG_FILE_XYB, 442, output_profile="srgb")
 

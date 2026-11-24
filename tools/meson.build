@@ -2,7 +2,8 @@ tools = [
     'vips',
     'vipsedit',
     'vipsthumbnail',
-    'vipsheader'
+    'vipsheader',
+    'lightbox-preview'
 ]
 
 foreach tool : tools
